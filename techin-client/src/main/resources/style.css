@@ -1,0 +1,19 @@
+.hbox {
+    -fx-alignment: center;
+}
+
+.label {
+    -fx-padding: 10;
+}
+
+
+.text-field {
+    -fx-border-insets: 5;
+}
+
+
+.ConnectRasPiView {
+    -fx-spacing: 10;
+    -fx-padding: 10;
+    -fx-alignment: center;
+}

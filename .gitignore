@@ -1,0 +1,24 @@
+**/.DS_Store
+client_id.json
+
+### https://raw.github.com/github/gitignore/f2ce448f2ba7a092da05482ceca99209127c0884/Global/sbt.gitignore
+
+# Simple Build Tool
+# http://www.scala-sbt.org/release/docs/Getting-Started/Directories.html#configuring-version-control
+
+target/
+lib_managed/
+src_managed/
+project/boot/
+.history
+.cache
+
+
+### https://raw.github.com/github/gitignore/f2ce448f2ba7a092da05482ceca99209127c0884/Global/ensime.gitignore
+
+# Ensime specific
+.ensime
+.ensime_cache/
+.ensime_lucene/
+
+
