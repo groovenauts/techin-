@@ -40,18 +40,25 @@ class Techin extends Actor {
       speaker ! SayReadQrCode
 
     case Said(SayReadQrCode) =>
+      println("said read qr code")
       val studentNumber = try {
         Some(currentStudetText.toInt)
       }catch{
         case e:Exception => None
       }
-      studentNumber
-        .foreach(studentNumber =>{
-                   studentManager ! GetStudent(studentNumber)
-                 })
+      println("check student number" + studentNumber)
+      studentNumber match {
+        case Some(number) =>
+          println("getting student!")
+          studentManager ! GetStudent(number)
+          println("get student!")
+        case None =>
+          Thread.sleep(500)
+          qrCodeReader ! Reload
+      }
 
 
-    case Some(student:Student) =>
+    case Some(student:StudentVer2) =>
       (entryControllers get student.number) match {
         case Some(actor) =>
           actor ! EntryManage
@@ -74,7 +81,7 @@ class Techin extends Actor {
                              s"${student.nickName}さんが${format(date)}にテックパークを退室しました。")
       mailSender ! message
 
-    case Sended(emailAddress: String) =>
+    case Sended(emailAddress) =>
       speaker ! SaySendedEmail
 
     case Said(SaySendedEmail) =>
@@ -93,6 +100,7 @@ class Techin extends Actor {
       context.system.terminate()
 
     case CheckConnect =>
+      println("cheching connect")
       Thread.sleep(100)
       sender ! CheckConnect
   }

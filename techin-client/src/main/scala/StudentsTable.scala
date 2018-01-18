@@ -10,13 +10,15 @@ import TableColumn._
 
 import scalafx.beans.property.{
   IntegerProperty,
-  StringProperty
+  StringProperty,
+  ObjectProperty
 }
 import scalafx.collections.ObservableBuffer
 import techin.{
-  Student,
-  StudentsTable => RemoteStudentsTable,
-  GetStudentList
+  StudentVer2,
+  StudentsTable2 => RemoteStudentsTable,
+  GetStudentList,
+  Addresses
 }
 
 import akka.actor.{
@@ -31,24 +33,27 @@ import scala.concurrent.{
   Future
 }
 
-class StudentData(val student:Student){
+class StudentData(val student:StudentVer2){
   val number = StringProperty("%03d".format(student.number))
   val nickName = StringProperty(student.nickName)
   val name = StringProperty(student.name)
-  val email = StringProperty(student.emailAddress)
+  val emailTO = StringProperty(student.emailAddress.to.mkString(","))
+  val emailCC = StringProperty(student.emailAddress.cc.mkString(","))
+  val emailBCC = StringProperty(student.emailAddress.bcc.mkString(","))
 }
 
 class StudentsList(actorRef: ActorSelection) {
   val students = ObservableBuffer[StudentData]()
 
-  implicit val timeout = Timeout(5 seconds)
+  implicit val timeout = Timeout(20 seconds)
   val interval = 1000
 
   def reload : Future[Any] = (actorRef ? GetStudentList).flatMap {
     (a:Any) =>
+    println(a)
     if( a.isInstanceOf[RemoteStudentsTable] ){
       val studentsTable = a.asInstanceOf[RemoteStudentsTable]
-      val studentsList : List[Student] = studentsTable.getStudentsList
+      val studentsList : List[StudentVer2] = studentsTable.getStudentsList
       for( newStudent <- studentsList ){
         // find update student
         var updateStudent : StudentData = null
@@ -67,8 +72,10 @@ class StudentsList(actorRef: ActorSelection) {
           if( updateStudent.name() != newStudent.name )
             updateStudent.name() = newStudent.name
 
-          if( updateStudent.email() != newStudent.emailAddress )
-            updateStudent.email() = newStudent.emailAddress
+          updateStudent.emailTO() = newStudent.emailAddress.to.mkString(",")
+          updateStudent.emailCC() = newStudent.emailAddress.cc.mkString(",")
+          updateStudent.emailBCC() = newStudent.emailAddress.bcc.mkString(",")
+
         }
       }
     }
@@ -91,7 +98,7 @@ class StudentsTable(val studentsList: StudentsList)
     new TableColumn[StudentData, String] {
      text = "nickname"
       cellValueFactory = { _.value.nickName }
-      prefWidth = 100d
+      prefWidth = 100
     },
     new TableColumn[StudentData, String] {
       text = "name" 
@@ -99,8 +106,18 @@ class StudentsTable(val studentsList: StudentsList)
       prefWidth = 100
     },
     new TableColumn[StudentData, String] {
-      text = "email"
-      cellValueFactory = { _.value.email }
+      text = "email to"
+      cellValueFactory = { _.value.emailTO }
+      prefWidth = 100
+    },
+    new TableColumn[StudentData, String] {
+      text = "email cc"
+      cellValueFactory = { _.value.emailCC }
+      prefWidth = 100
+    },
+    new TableColumn[StudentData, String] {
+      text = "email bcc"
+      cellValueFactory = { _.value.emailBCC }
       prefWidth = 100
     }
   )

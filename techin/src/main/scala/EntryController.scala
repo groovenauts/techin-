@@ -14,8 +14,8 @@ case object GetLastExitTime
 case class LastEntryTime(time:LocalDateTime)
 case class LastExitTime(time:LocalDateTime)
 
-case class EntryEvent(time:LocalDateTime, student: Student)
-case class ExitEvent(time:LocalDateTime, Student: Student)
+case class EntryEvent(time:LocalDateTime, student: StudentVer2)
+case class ExitEvent(time:LocalDateTime, Student: StudentVer2)
 
 case class EntryRecord(entryTimes: List[LocalDateTime] = Nil, exitTimes: List[LocalDateTime] = Nil, isExist : Boolean = false){
   def addEntry(entryEvent:EntryEvent) : EntryRecord =
@@ -27,9 +27,9 @@ case class EntryRecord(entryTimes: List[LocalDateTime] = Nil, exitTimes: List[Lo
   def lastExitTime : LocalDateTime = exitTimes.head
 }
 
-class EntryController(val student : Student)
+class EntryController(val student : StudentVer2)
     extends PersistentActor {
-  override def persistenceId = s"entry-controller-${student.number}-${student.nickName}"
+  override def persistenceId = s"entry-controller2-${student.number}-${student.nickName}"
 
   var entryRecord = EntryRecord()
   var lastUpdateTime : LocalDateTime = null

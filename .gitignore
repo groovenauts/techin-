@@ -21,4 +21,5 @@ project/boot/
 .ensime_cache/
 .ensime_lucene/
 
-
+techin-client/src/main/resources/techin_members.csv
+techin-client/src/main/resources/techin/client_id.json

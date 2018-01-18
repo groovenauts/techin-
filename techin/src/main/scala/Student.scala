@@ -5,7 +5,16 @@ case class Student(
   nickName: String,
   name: String,
   emailAddress:String
-)
+){
+  def toVer2 : StudentVer2 =
+    StudentVer2(number, nickName, name,
+                Addresses(
+                  Set(emailAddress),
+                  Set(),
+                  Set()
+                )
+    )
+}
 
 case class StudentVer2 (
   number:Int,
@@ -15,7 +24,8 @@ case class StudentVer2 (
 )
 
 case class Addresses (
-  to : String,
+  to : Set[String],
   cc : Set[String],
   bcc : Set[String]
 )
+

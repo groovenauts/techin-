@@ -31,8 +31,8 @@ import javax.mail.internet.{MimeMessage, MimeBodyPart, MimeMultipart}
 
 import javax.mail.internet.InternetAddress
 
-case class SendMail(emailAddress:String, subject:String, text:String)
-case class Sended(emailAddress:String)
+case class SendMail(emailAddress:Addresses, subject:String, text:String)
+case class Sended(emailAddress:Addresses)
 case class SendFailed(e:String)
 case class SetMailInfo(accessToken:String, refreshToken:String)
 
@@ -55,7 +55,7 @@ case class MailSenderInfo(
 }
 
 class MailSender extends PersistentActor {
-  override def persistenceId = "mailsender-gmail-api"
+  override def persistenceId = "mailsender-gmail-api2"
   var info = MailSenderInfo(
     "kids@techpark.jp",
     "Techin",
@@ -106,8 +106,8 @@ class MailSender extends PersistentActor {
       sender ! Sended(emailAddress)
   }
 
-  def send(mailAddress: String, subject: String, text: String) : Unit = {
-
+  def send(mailAddress: Addresses, subject: String, text: String) : Unit = {
+    println("send mail!")
     credential match {
       case None =>
         val newCredential = new GoogleCredential.Builder()
@@ -138,8 +138,22 @@ class MailSender extends PersistentActor {
       val email = new MimeMessage(session)
 
       email.setFrom(new InternetAddress(info.fromAddress))
-      email.addRecipient(javax.mail.Message.RecipientType.TO,
-                         new InternetAddress(mailAddress))
+      mailAddress.to.foreach(address =>
+        email.addRecipient(javax.mail.Message.RecipientType.TO,
+                           new InternetAddress(address))
+      )
+
+      mailAddress.cc.foreach( address =>
+        email.addRecipient(javax.mail.Message.RecipientType.CC,
+                           new InternetAddress(address))
+      )
+
+     (mailAddress.bcc + info.fromAddress).foreach(
+       address =>
+       email.addRecipient(javax.mail.Message.RecipientType.BCC,
+                          new InternetAddress(address))
+      )
+
       email.setSubject(subject)
       email.setText(text)
 

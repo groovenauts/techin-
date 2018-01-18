@@ -28,7 +28,7 @@ class RasPiConnector(val actorRef : ActorRef) {
 
   def connect(address : String) {
     val addr = RasPiConnectAddress(address)
-    implicit val timeout = Timeout(5 seconds)
+    implicit val timeout = Timeout(10 seconds)
     val future = (actorRef ? addr)
     val c = Await.result(future, timeout.duration).asInstanceOf[RasPiConnectAddress]
     subscribers.foreach(_ connected c.asInstanceOf[RasPiConnectAddress])
@@ -46,6 +46,7 @@ class RasPiConnectActor extends Actor {
       println("receive address!!!")
       become {
         case CheckConnect =>
+          println("check connect")
           requester ! connectAddress
           unbecome()
         case Terminate =>

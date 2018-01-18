@@ -3,7 +3,7 @@ scalaVersion := "2.12.2"
 resolvers += "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/"
 resolvers += Opts.resolver.sonatypeSnapshots
 
-lazy val akkaVersion = "2.5.3"
+lazy val akkaVersion = "2.5.8"
 
 
 
@@ -30,11 +30,6 @@ lazy val commonSettings = Seq(
   )
 )
 
-lazy val root = (project in file(".")).
-  settings(
-    commonSettings,
-    name := "root"
-  )
  
 lazy val raspi = (project in file("techin-raspi")).
   settings(

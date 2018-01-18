@@ -9,7 +9,11 @@ import scalafx.scene.control.{
   Button
 }
 
-import techin.UpdateStudent
+import techin.{
+  UpdateStudent,
+  StudentVer2,
+  Addresses
+}
 
 
 import akka.actor.{
@@ -28,12 +32,16 @@ class JoinStudentForm(val actorRef: ActorSelection) extends VBox {
   val studentNumberLabel = Label("student Number")
   val nicknameLabel = Label("nickname")
   val nameLabel = Label("first name")
-  val emailLabel = Label("email address")
+  val emailTOLabel = Label("email address to")
+  val emailCCLabel = Label("email address cc")
+  val emailBCCLabel = Label("email address bcc")
 
   val studentNumberTextField = new TextField()
   val nickNameTextField = new TextField()
   val nameTextField = new TextField()
-  val emailTextField = new TextField()
+  val emailTOTextField = new TextField()
+  val emailCCTextField = new TextField()
+  val emailBCCTextField = new TextField()
 
   val createButton = new Button("create student!")
   
@@ -44,8 +52,12 @@ class JoinStudentForm(val actorRef: ActorSelection) extends VBox {
     nickNameTextField,
     nameLabel,
     nameTextField,
-    emailLabel,
-    emailTextField,
+    emailTOLabel,
+    emailTOTextField,
+    emailCCLabel,
+    emailCCTextField,
+    emailBCCLabel,
+    emailBCCTextField,
     createButton
     )
 
@@ -54,9 +66,24 @@ class JoinStudentForm(val actorRef: ActorSelection) extends VBox {
     val studentNumber = studentNumberTextField.text().toInt
     val nickName = nickNameTextField.text()
     val name = nameTextField.text()
-    val email = emailTextField.text()
+    val emailTO = emailTOTextField.text().split(",").map(_.trim).toSet
+    val emailCC = emailCCTextField.text().split(",").map(_.trim).toSet
+    val emailBCC = emailBCCTextField.text().split(",").map(_.trim).toSet
 
-    val message = UpdateStudent(studentNumber, nickName, name, email)
+
+    val message = UpdateStudent(
+      StudentVer2(
+        studentNumber,
+        nickName,
+        name,
+        Addresses(
+          emailTO,
+          emailCC,
+          emailBCC
+        )
+      )
+
+    )
 
     implicit val timeout = Timeout(5 seconds)
     Await.result((actorRef ? message), timeout.duration)

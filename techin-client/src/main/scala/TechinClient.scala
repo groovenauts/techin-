@@ -15,7 +15,8 @@ import scalafx.scene.control.{
 
 import akka.util.Timeout
 import akka.actor.{
-  Props
+  Props,
+  ActorSelection
 }
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,6 +57,11 @@ import java.util.Collections
 import java.util.Properties
 import java.io.{ByteArrayOutputStream, InputStreamReader}
 
+import techin.{
+  StudentVer2,
+  UpdateStudent
+}
+
 
 object TechinClient extends JFXApp {
   val http_transport =
@@ -73,7 +79,7 @@ object TechinClient extends JFXApp {
   val dataStoreFactory = new FileDataStoreFactory(dataStoreDir)
 
   
-  val in = this.getClass.getResourceAsStream("/techin/client_id.json")
+  val in = this.getClass.getResourceAsStream("client_id.json")
   val clientSecret =
     GoogleClientSecrets.load(json_factory, new InputStreamReader(in))
 
@@ -87,7 +93,6 @@ object TechinClient extends JFXApp {
   val credential = new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver())
     .authorize("user")
 
-  var studentListCSV : List[List[String]] = null
   val qrImages_w = 595
   val qrImages_h = 842
   var qrImages = List(
@@ -165,9 +170,9 @@ object TechinClient extends JFXApp {
     
     val reader = CSVReader.open(csvName)
     catching(classOf[Exception]) opt {
-      studentListCSV = reader.all()
+      val studentListCSV = reader.allWithHeaders()
       for(col <-  studentListCSV ){
-        createQRCode(col(0), 100, col(0).toInt, col(3))
+        createQRCode(col("No"), 100, col("No").toInt, col("Name"))
         var i = 0
         for(image <- qrImages){
           ImageIO.write(image, "png", new File(s"${i}.png"))
@@ -176,8 +181,30 @@ object TechinClient extends JFXApp {
       }
     } 
   }
-  
 
+  def setStudentDataFromCSV(csvName: String, studentManager: ActorSelection) : Unit = {
+    import com.github.tototoshi.csv._
+    import scala.util.control.Exception._
+
+    val reader = CSVReader.open(csvName)
+    catching(classOf[Exception]) opt {
+      val studentListCSV = reader.allWithHeaders()
+      for(col <-  studentListCSV ){
+        val student = StudentVer2(
+          col("No").toInt,
+          col("名前"),
+          col("名前"),
+          techin.Addresses(col("to").split(" ").map(_.trim).toSet,
+                           col("cc").split(" ").map(_.trim).toSet,
+                           col("bcc").split(" ").map(_.trim).toSet
+          )
+        )
+        studentManager ! UpdateStudent(student)
+      }
+    }
+  }
+
+  createQRCode("/Users/NobkzPriv/techin/techin-client/src/main/resources/techin_members.csv")
 
   val system = StartActorSystem.system
 
@@ -189,7 +216,7 @@ object TechinClient extends JFXApp {
     height = 580
     
     scene = new Scene() {
-      stylesheets = List(TechinClient.getClass.getResource("../../style.css").toExternalForm())
+      stylesheets = List(TechinClient.getClass.getResource("style.css").toExternalForm())
       
       val connector  = new RasPiConnector(
         system.actorOf(Props[RasPiConnectActor], "remoteConnect")
@@ -211,6 +238,9 @@ object TechinClient extends JFXApp {
         def connected(address: RasPiConnectAddress) : Unit = {
           val studentManagerPath = address createPath "/user/techin/studentManager"
           val studentManagerActor = system.actorSelection(studentManagerPath)
+
+          // setStudentDataFromCSV("/Users/NobkzPriv/techin/techin-client/src/main/resources/techin_members.csv", studentManagerActor)
+
 
           val mailSenderActor = system.actorSelection(address createPath "/user/techin/mailSender")
 
