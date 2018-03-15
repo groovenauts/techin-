@@ -139,19 +139,25 @@ class MailSender extends PersistentActor {
 
       email.setFrom(new InternetAddress(info.fromAddress))
       mailAddress.to.foreach(address =>
-        email.addRecipient(javax.mail.Message.RecipientType.TO,
-                           new InternetAddress(address))
+        if( address != "" ){
+          email.addRecipient(javax.mail.Message.RecipientType.TO,
+                             new InternetAddress(address))
+        }
       )
 
       mailAddress.cc.foreach( address =>
-        email.addRecipient(javax.mail.Message.RecipientType.CC,
-                           new InternetAddress(address))
+        if( address != "" ){
+          email.addRecipient(javax.mail.Message.RecipientType.CC,
+                             new InternetAddress(address))
+        }
       )
 
      (mailAddress.bcc + info.fromAddress).foreach(
        address =>
-       email.addRecipient(javax.mail.Message.RecipientType.BCC,
-                          new InternetAddress(address))
+       if( address != "" ){
+         email.addRecipient(javax.mail.Message.RecipientType.BCC,
+                            new InternetAddress(address))
+       }
       )
 
       email.setSubject(subject)

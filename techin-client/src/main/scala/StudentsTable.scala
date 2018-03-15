@@ -50,12 +50,24 @@ class StudentsList(actorRef: ActorSelection) {
 
   def reload : Future[Any] = (actorRef ? GetStudentList).flatMap {
     (a:Any) =>
-    println(a)
     if( a.isInstanceOf[RemoteStudentsTable] ){
       val studentsTable = a.asInstanceOf[RemoteStudentsTable]
       val studentsList : List[StudentVer2] = studentsTable.getStudentsList
+      import java.io.File
+      val f = new File("backup_student_data.csv")
+      import com.github.tototoshi.csv._
+      val writer = CSVWriter.open(f)
+
       for( newStudent <- studentsList ){
         // find update student
+        writer.writeRow(List(newStudent.number,
+                             newStudent.name,
+                             newStudent.nickName,
+                             newStudent.emailAddress.to.mkString(" "),
+                             newStudent.emailAddress.cc.mkString(" "),
+                             newStudent.emailAddress.bcc.mkString(" ")
+                        ))
+
         var updateStudent : StudentData = null
         for( existStudent <- students.toList ){
           if( "%03d".format(newStudent.number) == existStudent.number() ){
@@ -78,6 +90,7 @@ class StudentsList(actorRef: ActorSelection) {
 
         }
       }
+      writer.close()
     }
     Thread.sleep(interval)
     reload

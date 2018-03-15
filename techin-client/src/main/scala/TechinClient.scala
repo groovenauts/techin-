@@ -84,7 +84,7 @@ object TechinClient extends JFXApp {
     GoogleClientSecrets.load(json_factory, new InputStreamReader(in))
 
   val flow =
-    new GoogleAuthorizationCodeFlow.Builder(http_transport, json_factory, clientSecret, Collections.singleton(GmailScopes.GMAIL_SEND))
+    new GoogleAuthorizationCodeFlow.Builder(http_transport, json_factory, clientSecret,   Collections.singleton(GmailScopes.GMAIL_SEND))
       .setDataStoreFactory(dataStoreFactory)
       .setAccessType("offline")
       .build()
@@ -182,6 +182,8 @@ object TechinClient extends JFXApp {
     } 
   }
 
+
+
   def setStudentDataFromCSV(csvName: String, studentManager: ActorSelection) : Unit = {
     import com.github.tototoshi.csv._
     import scala.util.control.Exception._
@@ -247,8 +249,6 @@ object TechinClient extends JFXApp {
           mailSenderActor ! techin.SetMailInfo(credential.getAccessToken(), credential.getRefreshToken() )
 
           val studentList= new StudentsList(studentManagerActor)
-
-
           val joinStudentForm = new JoinStudentForm(studentManagerActor)
           val studentsTable = new StudentsTable(studentList)
           val cameraLocalActor = system.actorOf(

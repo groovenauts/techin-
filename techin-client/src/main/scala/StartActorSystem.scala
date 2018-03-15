@@ -36,7 +36,7 @@ object StartActorSystem{
   val config = ConfigFactory.load("Application.conf")
   val hostName = getInetAddress
   val hostAddress = hostName.getHostAddress()
-  val hostnameConfigValue = ConfigValueFactory.fromAnyRef(hostName.getHostAddress())
+  val hostnameConfigValue = ConfigValueFactory.fromAnyRef(hostAddress)
   val newConfig = config.withValue("akka.remote.artery.canonical.hostname", hostnameConfigValue)
   val system = ActorSystem("techin-client", newConfig)
 }

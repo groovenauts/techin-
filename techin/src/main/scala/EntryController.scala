@@ -11,42 +11,60 @@ import java.time.temporal.ChronoUnit
 case object EntryManage
 case object GetLastEntryTime
 case object GetLastExitTime
-case class LastEntryTime(time:LocalDateTime)
-case class LastExitTime(time:LocalDateTime)
+case class LastEntryTime(time:Option[LocalDateTime])
+case class LastExitTime(time:Option[LocalDateTime])
+
 
 case class EntryEvent(time:LocalDateTime, student: StudentVer2)
 case class ExitEvent(time:LocalDateTime, Student: StudentVer2)
 
 case class EntryRecord(entryTimes: List[LocalDateTime] = Nil, exitTimes: List[LocalDateTime] = Nil, isExist : Boolean = false){
-  def addEntry(entryEvent:EntryEvent) : EntryRecord =
-    copy(entryEvent.time :: entryTimes, exitTimes, true)
-  def addExit(exitEvent:ExitEvent) : EntryRecord =
-    copy(entryTimes, exitEvent.time :: exitTimes, false)
+  def addEntry(entryEvent:EntryEvent) : EntryRecord = {
+    val noCheckExistEntryRecord = copy(entryEvent.time :: entryTimes, exitTimes, true)
+    copy(noCheckExistEntryRecord.entryTimes,
+         noCheckExistEntryRecord.exitTimes,
+         noCheckExistEntryRecord.updateIsExist
+    )
+  }
+  def addExit(exitEvent:ExitEvent) : EntryRecord = {
+    val noCheckExistEntryRecord = copy(entryTimes, exitEvent.time :: exitTimes, true)
+    copy(noCheckExistEntryRecord.entryTimes,
+         noCheckExistEntryRecord.exitTimes,
+         noCheckExistEntryRecord.updateIsExist
+    )
+  }
 
-  def lastEntryTime : LocalDateTime = entryTimes.head
-  def lastExitTime : LocalDateTime = exitTimes.head
+
+  def lastEntryTime : Option[LocalDateTime] =
+    if(entryTimes.isEmpty) None else Some(entryTimes.head)
+
+  def lastExitTime : Option[LocalDateTime] =
+    if(exitTimes.isEmpty) None else Some(exitTimes.head)
+
+  def lastUpdateTime : Option[LocalDateTime] =
+    (lastEntryTime, lastExitTime) match {
+      case (None, None) => None
+      case (Some(entryTime), None) => Some(entryTime)
+      case (None,Some(exitTime)) => Some(exitTime)
+      case (Some(entryTime), Some(exitTime)) =>
+        if(entryTime isAfter exitTime) Some(entryTime) else Some(exitTime)
+    }
+
+  def updateIsExist : Boolean =
+    (lastEntryTime, lastExitTime) match {
+      case (None, None) => false
+      case (Some(entryTime), None) => true
+      case (None,Some(exitTime)) => false
+      case (Some(entryTime), Some(exitTime)) =>
+        if(entryTime isAfter exitTime) true else false
+    }
 }
 
 class EntryController(val student : StudentVer2)
     extends PersistentActor {
-  override def persistenceId = s"entry-controller2-${student.number}-${student.nickName}"
+  override def persistenceId = s"entry-controller3-${student.number}-${student.nickName}"
 
   var entryRecord = EntryRecord()
-  var lastUpdateTime : LocalDateTime = null
-  def entryUpdateTimeFrom : LocalDateTime = 
-    LocalDateTime.of(LocalDateTime.now.toLocalDate(),
-                     LocalTime.of(12,0))
-  def entryUpdateTimeTo : LocalDateTime =
-    LocalDateTime.of(LocalDateTime.now.toLocalDate(),
-                     LocalTime.of(18,30))
-
-  def exitUpdateTimeFrom : LocalDateTime =
-    LocalDateTime.of(LocalDateTime.now.toLocalDate(),
-                   LocalTime.of(18,30))
-
-  def exitUpdateTimeTo : LocalDateTime =
-    LocalDateTime.of(LocalDateTime.now.toLocalDate(),
-                   LocalTime.of(23,0))
 
   val receiveRecover: Receive = {
     case entryEvent:EntryEvent =>
@@ -67,21 +85,19 @@ class EntryController(val student : StudentVer2)
 
     case EntryManage =>
       val nowTime = LocalDateTime.now()
-      var canUpdate = true
-      val updateInterval = 120
-      if( lastUpdateTime != null ){ 
-        canUpdate = (ChronoUnit.SECONDS.between(lastUpdateTime, nowTime)
-                       > updateInterval)
-      }
-      lastUpdateTime = nowTime
+      val updateInterval = 300
 
-      ChronoUnit.MINUTES.between(exitUpdateTimeFrom, nowTime) > 0
-      
 
-      if( canUpdate ){
-        if( ChronoUnit.MINUTES.between(entryUpdateTimeFrom, nowTime) > 0
-             && ChronoUnit.MINUTES.between(nowTime, entryUpdateTimeTo) > 0
+
+      if( entryRecord.lastUpdateTime.map(lastUpdateTime => ChronoUnit.SECONDS.between(lastUpdateTime, nowTime) > updateInterval ).getOrElse(true) ){
+        // when student don't exist or
+        // when student exist but the entry time of student is not today,
+        // entryManager add entry Time
+        if( !entryRecord.isExist
+             || entryRecord.lastEntryTime.map(lastEntryTime =>
+               lastEntryTime.toLocalDate != nowTime.toLocalDate).getOrElse(false)
         ){
+          // add entry
           println(s"set entry! ${student.name}")
           persist(EntryEvent(nowTime, student)){ event =>
             entryRecord = entryRecord.addEntry(event)
@@ -89,10 +105,8 @@ class EntryController(val student : StudentVer2)
             if (lastSequenceNr % snapShotInterval == 0 && lastSequenceNr != 0)
               saveSnapshot(entryRecord)
           }
-        }else if(
-          ChronoUnit.MINUTES.between(exitUpdateTimeFrom, nowTime) > 0
-            && ChronoUnit.MINUTES.between(nowTime, exitUpdateTimeTo) > 0
-           ){
+        }else{
+          // add exit
           println(s"set exit! ${student.name}")
           persist(ExitEvent(nowTime, student)){ event =>
             entryRecord = entryRecord.addExit(event)
@@ -100,11 +114,11 @@ class EntryController(val student : StudentVer2)
             if (lastSequenceNr % snapShotInterval == 0 && lastSequenceNr != 0)
               saveSnapshot(entryRecord)
           }
-        }else {
-          sender ! Reload
         }
+        
       }else{
         sender ! Reload
       }
+
   }
 }
